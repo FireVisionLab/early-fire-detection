@@ -7,4 +7,6 @@ requires-python = ">=3.11"
 dependencies = [
     "ipykernel>=7.2.0",
     "kagglehub>=1.0.1",
+    "matplotlib>=3.10.9",
+    "pillow>=12.2.0",
 ]
