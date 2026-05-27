@@ -9,17 +9,12 @@ uv sync
 
 ### PyTorch (GPU)
 
-Check your CUDA version first:
+1. Check CUDA version: `nvcc --version`
+2. Match it in `pyproject.toml` — update the `[[tool.uv.index]]` URL (e.g. `cu128`, `cu130`) and run `uv lock`
+3. `uv sync`, then verify:
 
 ```bash
-nvcc --version
-```
-
-Then install PyTorch for that version from [pytorch.org](https://pytorch.org/get-started/locally/):
-
-```bash
-# For example CUDA 13.0
-uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu130
+python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 ```
 
 ### Project structure
