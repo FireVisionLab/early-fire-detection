@@ -28,7 +28,7 @@ def save_checkpoint(path, model, optimizer, epoch, metric):
         "optimizer": optimizer.state_dict(),
     }, path)
 
-def load_checkpoint(path, model, optimizer):
+def load_checkpoint(path, model, optimizer = None):
     checkpoint = torch.load(Path(path))
     model.load_state_dict(checkpoint["model"])
     if optimizer is not None:
