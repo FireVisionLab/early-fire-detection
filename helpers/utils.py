@@ -71,3 +71,13 @@ def read_yolo_metrics(run_dir):
     df = pd.read_csv(Path(run_dir) / "results.csv")
     df.columns = [c.strip() for c in df.columns]
     return df
+
+def f2_score(p, r):
+    if p + r == 0:
+        return 0.0
+    return (5 * p * r) / (4 * p + r)
+
+def f1_score(p, r):
+    if p + r == 0:
+        return 0.0
+    return (2 * p * r) / (p + r)
