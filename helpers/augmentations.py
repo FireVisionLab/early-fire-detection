@@ -19,11 +19,45 @@ def limited_color_jitter(img: Image.Image, brightness=0.15, contrast=0.15, satur
     return img
 
 def random_scale(img: Image.Image, boxes, scale_range=(0.8, 1.25)):
+    orig_w, orig_h = img.size
     s = random.uniform(*scale_range)
-    new_w = max(1, round(img.width * s))
-    new_h = max(1, round(img.height * s))
-    img = img.resize((new_w, new_h), Image.BILINEAR)
-    return img, boxes
+    new_w = max(1, round(orig_w * s))
+    new_h = max(1, round(orig_h * s))
+    scaled = img.resize((new_w, new_h), Image.BILINEAR)
+
+    canvas = Image.new("RGB", (orig_w, orig_h), (114, 114, 114))
+    left = (orig_w - new_w) // 2
+    top = (orig_h - new_h) // 2
+    canvas.paste(scaled, (left, top)) # paste the scaled image back onto an original-size canvas
+
+    # Also we have to adjust the bounding boxes
+    remapped = []
+    for cls_id, xc, yc, w, h in boxes:
+        abs_xc = xc * new_w + left
+        abs_yc = yc * new_h + top
+        abs_w = w * new_w
+        abs_h = h * new_h
+
+        xc2 = abs_xc / orig_w
+        yc2 = abs_yc / orig_h
+        w2 = abs_w / orig_w
+        h2 = abs_h / orig_h
+
+        x1 = max(0.0, xc2 - w2 / 2)
+        y1 = max(0.0, yc2 - h2 / 2)
+        x2 = min(1.0, xc2 + w2 / 2)
+        y2 = min(1.0, yc2 + h2 / 2)
+        if x2 <= x1 or y2 <= y1:
+            continue
+
+        orig_area = w2 * h2
+        visible_area = (x2 - x1) * (y2 - y1)
+        if orig_area > 0 and visible_area / orig_area < 0.2 : # Added to make sure that if %80 of bounding box is out of the image after scaling. we discard it
+            continue
+
+        remapped.append((cls_id, (x1 + x2) / 2, (y1 + y2) / 2, x2 - x1, y2 - y1))
+
+    return canvas, remapped
 
 
 def apply_clahe(img: Image.Image, clip_limit=2.0, tile_grid_size=(8, 8)):
