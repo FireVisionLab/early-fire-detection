@@ -1,6 +1,13 @@
 .venv/
 __pycache__/
 *.pyc
+.pytest_cache/
+data/
+artifacts/checkpoints/
+artifacts/runs/
+*.pt
+*.pth
+tmp/
 .env
 !data/.gitkeep
 models/

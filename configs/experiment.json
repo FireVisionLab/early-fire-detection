@@ -1,0 +1,41 @@
+{
+    "experiment_name": "eytnet_baseline",
+
+    "data_root": "data",
+    "class_names": ["fire", "smoke"],
+    "image_size":640,
+    "strides": [16,32],
+    "anchors_path": "configs/anchors.json",
+    "seed": 42,
+    "batch_size": 16,
+    "num_workers": 4,
+    "epochs": 30,
+
+    "optimizer": "adam",
+    "learning_rate": 0.001,
+    "momentum": 0.9,
+    "weight_decay": 0.0005,
+    "lr_scheduler": "cosine",
+    "final_lr_factor": 0.05,
+    "warmup_epochs": 3,
+
+    "augmentation_enabled": true,
+    "use_clahe": false,
+
+    "use_amp": true,
+    "gradient_clip_norm": 10.0,
+    "early_stopping_patience": 12,
+
+    "lambda_box": 5.0,
+    "lambda_objectness": 1.0,
+    "lambda_class": 1.0,
+    "negative_objectness_weight": 0.5,
+    "ignore_iou_threshold": 0.5,
+
+    "decode_score_floor": 0.01,
+    "validation_score_threshold": 0.25,
+    "nms_iou_threshold": 0.5,
+    "max_detections": 300,
+
+    "run_root": "models/eytnet"
+}
