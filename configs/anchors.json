@@ -3,6 +3,7 @@
   "seed": 42,
   "k": 6,
   "avg_iou": 0.6379215170496142,
+  "train_boxes": 4812,
   "anchors_px": [
     [
       9.5,
