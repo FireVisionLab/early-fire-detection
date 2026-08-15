@@ -81,3 +81,47 @@ def f1_score(p, r):
     if p + r == 0:
         return 0.0
     return (2 * p * r) / (p + r)
+
+
+def train_detection_run(model, optimizer,train_loader, val_loader, device, run_dir, epochs, start_epoch=1, log_every = 200):
+    ckpt = BestCheckpoint(run_dir)
+
+    for epoch in range(start_epoch, epochs + 1):
+        model.train()
+        n = 0
+        running_loss = 0.0
+
+        for images, targets in train_loader:
+            images = [img.to(device) for img in images]
+            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+            loss_dict = model(images, targets)
+            loss = sum(loss_dict.values())
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+
+            n += 1
+            if n % log_every == 0:
+                print(f"Epoch {epoch}, Step {n}, Loss: {running_loss / n}")
+
+        train_loss = running_loss / n
+
+        val_running_loss = 0.0
+        val_n = 0
+        with torch.no_grad():
+            for images, targets in val_loader:
+                images = [img.to(device) for img in images]
+                targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+                loss_dict = model(images, targets)
+                loss = sum(loss_dict.values())
+                val_running_loss += loss.item()
+                val_n += 1
+        val_loss = val_running_loss / val_n
+
+        ckpt.update(model, optimizer, epoch, -val_loss)
+        append_metrics(run_dir / "metrics.csv", {"epoch": epoch, "train_loss": train_loss, "val_loss": val_loss})
+        print(f"Epoch {epoch} completed. Train Loss: {train_loss}, Val Loss: {val_loss}")
+
+    return ckpt
