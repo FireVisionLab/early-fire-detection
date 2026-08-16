@@ -7,6 +7,11 @@ CLASS_IDS = {
     1: {"name": "smoke", "color": "blue"}
 }
 
+TV_CLASS_IDS = {
+    1: CLASS_IDS[0],  # fire
+    2: CLASS_IDS[1],  # smoke
+}
+
 
 def draw_bbox(ax, label_path: Path, img_path: Path): 
     img_w, img_h = Image.open(img_path).size
@@ -41,3 +46,22 @@ def draw_yolo_boxes(ax, boxes, img_w, img_h):
             linewidth=2,
         )
         ax.add_patch(rect)
+
+
+def draw_xyxy_boxes(ax, boxes, labels, scores=None, conf=0.5):
+    for i, box in enumerate(boxes):
+        if scores is not None and scores[i] < conf:
+            continue
+
+        x1, y1, x2, y2 = [float(coord) for coord in box]
+        cls_id = int(labels[i])
+        color = TV_CLASS_IDS[cls_id]["color"]
+
+        rectangle = plt.Rectangle(
+            (x1, y1), x2 - x1, y2 - y1,
+            fill=False,
+            edgecolor=color,
+            linewidth=2,
+        )
+
+        ax.add_patch(rectangle)

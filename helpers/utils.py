@@ -1,9 +1,13 @@
 import random
 from pathlib import Path
+from sched import scheduler
 import numpy as np
 import torch
 import pandas as pd
 import csv
+import json
+import time
+from helpers.datahelperrr import evaluate_map
 
 
 def set_seed(seed=42): # For reproducibility
@@ -81,3 +85,78 @@ def f1_score(p, r):
     if p + r == 0:
         return 0.0
     return (2 * p * r) / (p + r)
+
+def save_run_config(run_dir, config):
+    with (Path(run_dir) / "config.json").open("w") as f:
+        json.dump(config, f, indent=2)
+
+def train_detection_run(model, optimizer,train_loader, val_loader, device, run_dir, epochs, start_epoch=1, log_every = 200, scheduler=None, ):
+    ckpt = BestCheckpoint(run_dir)
+
+    for epoch in range(start_epoch, epochs + 1):
+        model.train()
+        t0 = time.time()
+        n = 0
+        train_parts = {}
+        for images, targets in train_loader:
+            images = [img.to(device) for img in images]
+            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+            loss_dict = model(images, targets)
+            loss = sum(loss_dict.values())
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            for k, v in loss_dict.items():
+                train_parts[k] = train_parts.get(k, 0.0) + v.item()
+            train_parts["total"] = train_parts.get("total", 0.0) + loss.item()
+
+
+            n += 1
+            if n % log_every == 0:
+                print(f"Epoch {epoch}, Step {n}, Loss: {train_parts['total'] / n}")
+
+        train_parts = {f"train_{k}": v / n for k, v in train_parts.items()}
+
+        val_parts = {}
+        val_n = 0
+        with torch.no_grad():
+            for images, targets in val_loader:
+                images = [img.to(device) for img in images]
+                targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+                loss_dict = model(images, targets)
+                for k, v in loss_dict.items():
+                    val_parts[k] = val_parts.get(k, 0.0) + v.item()
+                val_parts["total"] = val_parts.get("total", 0.0) + sum(loss_dict.values()).item()
+                val_n += 1
+        val_parts = {f"val_{k}": v / val_n for k, v in val_parts.items()}
+
+        map50, aps50 = evaluate_map(model, val_loader, device, iou_thresh=0.5)
+        map75, aps75 = evaluate_map(model, val_loader, device, iou_thresh=0.75)
+
+        if scheduler is not None:
+            scheduler.step()
+
+        row = {
+            "epoch": epoch,
+            **train_parts,
+            **val_parts,
+            "map50": map50,
+            "map75": map75,
+            "ap50_fire": aps50.get("fire"),
+            "ap50_smoke": aps50.get("smoke"),
+            "ap75_fire": aps75.get("fire"),
+            "ap75_smoke": aps75.get("smoke"),
+            "lr": optimizer.param_groups[0]["lr"],
+            "epoch_sec": time.time() - t0,
+        }
+
+        ckpt.update(model, optimizer, epoch, row["map50"])
+        append_metrics(run_dir / "metrics.csv", row)
+        print(
+            f"Epoch {epoch}: val_total {row['val_total']}, "
+            f"map50 {map50}, map75 {map75}, {row['epoch_sec']}s"
+        )
+
+    return ckpt
