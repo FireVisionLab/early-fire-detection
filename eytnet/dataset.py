@@ -1,3 +1,7 @@
+"""PyTorch Dataset for Fire Detection.
+On isleme ve augmentasyon helpers'ten cağırılıyor. EYT-net ve R-CNN aynı girdi hattını kullanıyor"""
+
+
 from __future__ import annotations
 from pathlib import Path
 
@@ -14,19 +18,19 @@ class FireDetectionDataset(Dataset):
         self.image_dir = Path(data_root) / split / "images"
         self.label_dir = Path(data_root) / split / "labels"
 
-        self.image_path = sorted(self.image_dir.glob("*.jpg"))
+        self.image_paths = sorted(self.image_dir.glob("*.jpg"))
 
         self.image_size = image_size
         self.augment = augment
         self.use_clahe = use_clahe
-        if not self.image_path:
+        if not self.image_paths:
             raise FileNotFoundError(f"Veri bulunamadı: {self.image_dir}")
 
     def __len__(self):
-            return len(self.image_path)
+            return len(self.image_paths)
 
     def __getitem__(self, index):
-            image_path = self.image_path[index]
+            image_path = self.image_paths[index]
             label_path = self.label_dir / f"{image_path.stem}.txt"
 
             image = Image.open(image_path).convert("RGB")
@@ -40,9 +44,9 @@ class FireDetectionDataset(Dataset):
             tensor, scale, pad_x, pad_y = preprocess(image, self.image_size)
 
             remapped = [
-                [float(c), *remap_bbox(xc, yc, w, h, width, height,
+                [float(cls), *remap_bbox(xc, yc, w, h, width, height,
                                     scale, pad_x, pad_y, self.image_size)]
-                for c, xc, yc, w, h in boxes
+                for cls, xc, yc, w, h in boxes
             ]
             remapped = [b for b in remapped if b[3] > 0 and b[4] > 0]
 
@@ -52,6 +56,22 @@ class FireDetectionDataset(Dataset):
                     "orig_width": width, "orig_height": height,
                     "scale": float(scale), "pad_x": int(pad_x), "pad_y": int(pad_y)}
             return torch.from_numpy(tensor), targets, meta
+
+
+def collate_fn(batch):
+    images, targets, metas = zip(*batch)
+
+    rows = []
+    for i, target in enumerate(targets):
+        if len(target):
+            batch_column = torch.full((len(target), 1), float(i))
+            rows.append(torch.cat([batch_column, target], dim=1))
+
+    return (torch.stack(images),
+            torch.cat(rows) if rows else torch.zeros((0, 6)),
+            list(metas))
+    
+    
 
 def build_dataloader(config, split):
     is_train = split == "train"

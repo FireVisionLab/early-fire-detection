@@ -48,12 +48,20 @@ class EYTNet(nn.Module):
         self._init_weights()
 
     def _init_weights(self):
+        # Backbone: LeakyReLU'ya uygun Kaiming
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, a=0.1, nonlinearity="leaky_relu")
+
         with torch.no_grad():
             for head in (self.head_p4, self.head_p5):
-                head.bias.view(self.anchors_per_scale, self.num_outputs)[:,4] = -4.0
+                # Head KUCUK baslamali: buyuk baslarsa sigmoid daha ilk adimda
+                # doyma bolgesine dusuyor, orada gradyan sifir ve kutu olu kaliyor.
+                nn.init.normal_(head.weight, std=0.01)
+                head.bias.zero_()
+                # Objectness bias -4 -> sigmoid(-4)=0.018. Egitimin basinda model
+                # "her yerde nesne var" demiyor; 6000 hucrenin cogu zaten bos.
+                head.bias.view(self.anchors_per_scale, self.num_outputs)[:, 4] = -4.0
 
     def _reshape(self,raw):
         b, _, h, w = raw.shape
