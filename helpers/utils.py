@@ -89,8 +89,9 @@ def save_run_config(run_dir, config):
     with (Path(run_dir) / "config.json").open("w") as f:
         json.dump(config, f, indent=2)
 
-def train_detection_run(model, optimizer,train_loader, val_loader, device, run_dir, epochs, start_epoch=1, log_every = 200, scheduler=None, ):
+def train_detection_run(model, optimizer,train_loader, val_loader, device, run_dir, epochs, start_epoch=1, log_every = 200, scheduler=None, patience=None, min_epoch=1):
     ckpt = BestCheckpoint(run_dir)
+    stale = 0
 
     for epoch in range(start_epoch, epochs + 1):
         model.train()
@@ -157,5 +158,14 @@ def train_detection_run(model, optimizer,train_loader, val_loader, device, run_d
             f"Epoch {epoch}: val_total {row['val_total']}, "
             f"map50 {map50}, map75 {map75}, {row['epoch_sec']}s"
         )
+
+        if patience is not None:
+            if row["map50"] < ckpt.best_metric:
+                stale += 1
+            else:
+                stale = 0
+            if stale >= patience and epoch >= min_epoch:
+                print(f"Early stopping at epoch {epoch}. Best map50: {ckpt.best_metric}")
+                break
 
     return ckpt
