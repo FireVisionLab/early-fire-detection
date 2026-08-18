@@ -6,7 +6,7 @@ import pandas as pd
 import csv
 import json
 import time
-from helpers.datahelperrr import evaluate_map
+from eytnet.metrics_compat import evaluate_map
 
 
 def set_seed(seed=42): # For reproducibility
