@@ -30,7 +30,7 @@ def to_original(boxes, meta):
         return boxes
 
     out = boxes.astype(np.float32).copy()
-    out[:, [0,2]] = np.clip((out[:, [0,2]] , meta["pad_x"]) /meta["scale"],
+    out[:, [0, 2]] = np.clip((out[:, [0, 2]] - meta["pad_x"]) / meta["scale"],
                             0, meta["orig_width"])
 
     out[:, [1, 3]] = np.clip((out[:, [1, 3]] - meta["pad_y"]) / meta["scale"],
@@ -43,6 +43,15 @@ def collect_predictions(model, loader, device, score_threshold=COLLECT_FLOOR,
     """faster R-CNN + (images,targets) lodar --> ortak format"""
 
     model.eval()
+
+    old_score_threshold = None
+    if hasattr(model, "roi_heads"):
+        old_score_threshold = model.roi_heads.score_thresh
+        model.roi_heads.score_thresh = min(
+            old_score_threshold,
+            score_threshold,
+        )
+
     paths = list(getattr(loader.dataset, "image_paths", []))
     predictions, ground_truths = {}, {}
 
@@ -88,22 +97,50 @@ def collect_predictions(model, loader, device, score_threshold=COLLECT_FLOOR,
 
             else:
                 ground_truths[image_id] = np.zeros((0,5), np.float32)
-
+    if old_score_threshold is not None:
+        model.roi_heads.score_thresh = old_score_threshold
     return predictions, ground_truths
 
 
-def evaluate_map(model, loader, device, iou_threshold = 0.5, score_thresh = 0.05):
-    predictions, ground_truths = collect_predictions(model, loader, device)
-    results = evaluate_detections(predictions, ground_truths, CLASS_NAMES,
-                                  score_threshold=score_thresh, iou_threshold=iou_threshold, map5095=True)
+def evaluate_map(
+    model,
+    loader,
+    device,
+    iou_thresh=0.5,
+    score_thresh=0.05,
+):
+    predictions, ground_truths = collect_predictions(
+        model,
+        loader,
+        device,
+    )
 
-    class_aps = {name: m["ap"] for name, m in results["per_class"].items()
-                 if m["support"] > 0}
+    results = evaluate_detections(
+        predictions,
+        ground_truths,
+        CLASS_NAMES,
+        score_threshold=score_thresh,
+        iou_threshold=iou_thresh,
+        map5095=False,
+    )
+
+    class_aps = {
+        name: metrics["ap50"]
+        for name, metrics in results["per_class"].items()
+        if metrics["support"] > 0
+    }
+
     for name, ap in class_aps.items():
-        print(f"AP@{iou_threshold:.2f} {name}: {ap:.3f}")
+        print(f"AP@{iou_thresh:.2f} {name}: {ap:.3f}")
 
-    map_score = sum(class_aps.values()) / len(class_aps) if class_aps else 0.0
-    print(f"mAP@{iou_threshold:.2f}: {map_score:.3f}")
+    map_score = (
+        sum(class_aps.values()) / len(class_aps)
+        if class_aps
+        else 0.0
+    )
+
+    print(f"mAP@{iou_thresh:.2f}: {map_score:.3f}")
+
     return map_score, class_aps
 
 def evaluate_full(model, loader, device, score_thresh = 0.25):
