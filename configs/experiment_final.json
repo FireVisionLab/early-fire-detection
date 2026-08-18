@@ -1,5 +1,5 @@
 {
-    "experiment_name": "eytnet_final",
+    "experiment_name": "eytnet_final_v1_opt_obj01",
 
     "data_root": "data",
     "class_names": ["fire", "smoke"],
@@ -9,27 +9,32 @@
     "seed": 42,
     "batch_size": 32,
     "num_workers": 8,
-    "epochs": 12,
+    "epochs": 60,
 
     "optimizer": "adam",
     "learning_rate": 0.001,
     "momentum": 0.9,
-    "weight_decay": 0.0005,
+    "weight_decay": 0.0001,
     "lr_scheduler": "cosine",
     "final_lr_factor": 0.05,
     "warmup_epochs": 1,
+    "channels": [32, 64, 128, 256, 512],
+    "kernel_size": 3,
+    "blocks_per_stage": 2,
+    "downsample_mode": "conv",
+    "upsample_mode": "nearest",
 
     "augmentation_enabled": true,
     "use_clahe": false,
 
     "use_amp": true,
     "gradient_clip_norm": 10.0,
-    "early_stopping_patience": 12,
+    "early_stopping_patience": 10,
 
     "lambda_box": 5.0,
     "lambda_objectness": 1.0,
     "lambda_class": 1.0,
-    "negative_objectness_weight": 0.5,
+    "negative_objectness_weight": 0.1,
     "ignore_iou_threshold": 0.5,
 
     "decode_score_floor": 0.01,
