@@ -7,9 +7,9 @@
     "strides": [16,32],
     "anchors_path": "configs/anchors.json",
     "seed": 42,
-    "batch_size": 16,
-    "num_workers": 4,
-    "epochs": 70,
+    "batch_size": 32,
+    "num_workers": 8,
+    "epochs": 12,
 
     "optimizer": "adam",
     "learning_rate": 0.001,
@@ -17,14 +17,14 @@
     "weight_decay": 0.0005,
     "lr_scheduler": "cosine",
     "final_lr_factor": 0.05,
-    "warmup_epochs": 3,
+    "warmup_epochs": 1,
 
     "augmentation_enabled": true,
     "use_clahe": false,
 
     "use_amp": true,
     "gradient_clip_norm": 10.0,
-    "early_stopping_patience": 15,
+    "early_stopping_patience": 12,
 
     "lambda_box": 5.0,
     "lambda_objectness": 1.0,

@@ -129,6 +129,9 @@ def collect_predictions(model, loader, config, device, score_threshold=None):
             detections = to_original(detections.cpu(), meta)
             predictions[meta["image_id"]] = (detections.numpy() if len(detections)
                                              else np.zeros((0, 6), dtype=np.float32))
+            
+    return predictions
+
 @torch.no_grad()
 def predict_image(model, image, config, device, score_threshold=None):
     "Tek bir PIL goruntusu icin uctan uca tahmin (demo icin)."
