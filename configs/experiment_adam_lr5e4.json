@@ -1,5 +1,5 @@
 {
-    "experiment_name": "hparam_adam_noaug",
+    "experiment_name": "hparam_adam_lr5e4",
 
     "data_root": "data",
     "class_names": ["fire", "smoke"],
@@ -12,14 +12,14 @@
     "epochs": 12,
 
     "optimizer": "adam",
-    "learning_rate": 0.001,
+    "learning_rate": 0.0005,
     "momentum": 0.9,
     "weight_decay": 0.0005,
     "lr_scheduler": "cosine",
     "final_lr_factor": 0.05,
     "warmup_epochs": 1,
 
-    "augmentation_enabled": false,
+    "augmentation_enabled": true,
     "use_clahe": false,
 
     "use_amp": true,

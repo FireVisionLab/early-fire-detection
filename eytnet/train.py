@@ -112,12 +112,29 @@ def train(config, device=None, resume=False):
 
     start_epoch, best_map = 0, -1.0
     last_path = config.run_dir / "weights" / "last.pt"
+
     if resume and last_path.exists():
         state = load_checkpoint(last_path, model, optimizer)
         start_epoch = int(state["epoch"])
-        best_map = checkpoint.best_metric = float(state.get("metric", -1.0))
-        print(f"Devam: epoch {start_epoch} sonrasindan, en iyi mAP {best_map:.4f}")
 
+        best_path = config.run_dir / "weights" / "best.pt"
+
+        if best_path.exists():
+            best_state = torch.load(
+                best_path,
+                map_location="cpu",
+                weights_only = False,
+            )
+            best_map = float(best_state.get("metric", -1.0)) 
+        else:
+            best_map = float(state.get("metric", -1.0))  # best.pt yoksa last.pt'den al
+
+        checkpoint.best_metric = best_map
+        
+        print(
+            f"Devam: epoch {start_epoch} sonrasindan, "
+            f"en iyi mAP {best_map:.4f}"
+        )
 
     print(f"{config.experiment_name} | {model.count_parameters():,} parametre | {device}")
 
