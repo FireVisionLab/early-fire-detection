@@ -12,7 +12,6 @@ dependencies = [
     "pillow>=12.2.0",
     "torch>=2.12.0",
     "torchvision>=0.27.0",
-    "ultralytics>=8.4.56",
 ]
 
 [[tool.uv.index]]
